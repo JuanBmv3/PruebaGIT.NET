@@ -1,0 +1,355 @@
+﻿@model IEnumerable<Prueba.Models.PaisesModel>
+@{
+    ViewBag.Title = "Home Page";
+}
+
+<style type="text/css">
+    .trCustomers:hover {
+        background-color: cadetblue;
+        cursor: pointer;
+    }
+</style>
+
+@* ---------- MODAL EDIT ---------------*@
+
+<div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Editar Freight</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" onclick="updateRow()" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------- MODAL EDIT ---------------*@
+
+
+@* ---------- MODAL ADD ---------------*@
+
+<div class="modal fade" id="modalCreate" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Agregar Order</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="inputID">
+                    
+                </div>
+                
+                <div class="form-group">
+                    <label for="recipient-name" class="col-form-label">Order date</label>
+                    <input type="date" class="form-control" id="orderDate">
+                </div>
+                <div class="form-group">
+                    <label for="recipient-name" class="col-form-label">Required date</label>
+                    <input type="date" class="form-control" id="requiredDate">
+                </div>
+                <div class="form-group">
+                    <label for="recipient-name" class="col-form-label">Ship city</label>
+                    <input type="text" class="form-control" id="shipCity">
+                </div>
+                <div class="form-group">
+                    <label for="recipient-name" class="col-form-label">Freight</label>
+                    <input type="number" class="form-control" id="freight">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" onclick="addRow()" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------- MODAL ADD ---------------*@
+
+<div style="display: flex; align-items:center; align-content: center; flex-direction:column">
+    <div>
+        <select id="selectP" onchange="mostrarCustormers()" class="form-select">
+            <option selected disabled>Selecciona el País</option>
+            @foreach (var item in Model)
+            {
+                <option value="@item.nomPais">@item.nomPais</option>
+            }
+        </select>
+
+    </div>
+    <h3>Clientes</h3>
+    <div style="margin-top: 3rem">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Company Name</th>
+                    <th>Contact Name</th>
+                </tr>
+            </thead>
+            <tbody id="tblCompanies"></tbody>
+        </table>
+
+    </div>
+    <h3>Orders</h3>
+    <div>
+
+        <div style="display: flex; flex-direction: row" id="buttons">
+          
+        </div>
+
+        <div style="margin-top: 3rem">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Order Date</th>
+                        <th>Required Date</th>
+                        <th>ShipCity</th>
+                        <th>Freight</th>
+                        <th>Editar</th>
+                    </tr>
+                </thead>
+                <tbody id="tblOrders"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function mostrarCustormers() {
+        $('#tblOrders').html("");
+        var val = document.getElementById("selectP");
+        var pais = val.value;
+
+        $.ajax({
+            url: "/Home/Companies?pais=" + pais,
+            type: "GET",
+
+            success: function (r) {
+                if (r.length !== 0) {
+
+                    $('#tblCompanies').html("");
+                    var output = "";
+                    r.forEach(customer => {
+                        output += '<tr id=' + customer.customerID + ' class="trCustomers" onclick="showOrders(this)"> <td>' + customer.companyName + '</td> <td>' + customer.contactName + '</td> </tr>';
+                    })
+                    $('#tblCompanies').html(output);
+                    return true;
+                } else {
+                    window.alert("No hay ciudades");
+                    return false;
+                }
+
+            }
+        });
+
+    }
+
+    function showOrders(cliente) {
+        $.ajax({
+            url: "/Home/Orders?clienteID=" + cliente.id,
+            type: "GET",
+
+            success: function (r) {
+                if (r.length !== 0) {
+
+                    $('#tblOrders').html("");
+                    var output = "";
+                    var suma = 0;
+                    r.forEach(customer => {
+
+                        var JavaScriptDate = new Date(parseInt(customer.orderDate.substr(6)));
+                        var JavaScriptDate2 = new Date(parseInt(customer.requiredDate.substr(6)));//to js format
+                        var dateObject = new Date(JavaScriptDate).toLocaleDateString()
+                        var dateObject2 = new Date(JavaScriptDate2).toLocaleDateString()
+
+                        output += '<tr id=row' + customer.orderID + '"> ' +
+                            '<td><input type="checkbox" id="' + customer.orderID + '" class="form-control checkRow"></td>' +
+                            '<td>' + customer.orderID + '</td>' +
+                            '<td>' + customer.companyName + '</td>' +
+                            '<td>' + dateObject + '</td>' +
+                            '<td>' + dateObject2 + '</td>' +
+                            '<td>' + customer.shipCity + '</td>' +
+                            '<td id="freight' + customer.orderID + '" class="freight">' + customer.freight + '</td>' +
+                            '<td><button onclick="editarRow(' + customer.orderID + ')" class="btn btn-warning">Editar</button></td>' +
+
+                            '</tr >';
+
+                        suma += parseFloat(customer.freight);
+
+                    })
+
+                    output += '<tr> ' +
+                        '<td colspan="5"></td>' +
+                        '<td> TOTAL </td>' +
+                        '<td id="sumaTotal" >' + suma + '</td>' +
+                        '<td></td>' +
+                        '</tr >';
+
+                    $('#tblOrders').html(output);
+                    $('#buttons').html("")
+                    $('#buttons').html('<button onclick="showAddModal(this)" id="'+cliente.id+'" class="btn btn-success">Agregar Orden</button> <button onclick="borrarRow()" class="btn btn-danger">Eliminar Orden</button>')
+
+
+                    return true;
+                } else {
+                    window.alert("No hay ciudades");
+                    return false;
+                }
+
+            }
+        });
+
+    }
+
+    function borrarRow() {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var check_boxes = [];
+                $(".checkRow").each(function () {
+
+                    if (this.checked) {
+                        check_boxes.push(this.id);
+                    }
+                })
+                $.ajax({
+                    url: "/Home/Delete",
+                    type: "POST",
+                    data: { 'data': check_boxes },
+                    success: function (r) {
+                        if (r) {
+
+                            $(".checkRow").each(function () {
+
+                                if (this.checked) {
+                                    this.closest('tr').remove()
+                                }
+                            })
+
+                            resTotal();
+                            Swal.fire(
+                                'Deleted!',
+                                'Your file has been deleted.',
+                                'success'
+                            )
+
+                        } else {
+                            Swal.fire(
+                                'Error',
+                                'Your file has been deleted.',
+                                'error'
+                            )
+                        }
+
+
+                    }
+                })
+            }
+        })
+    }
+
+
+
+    function editarRow(id) {
+        $('#modalEdit').modal('show');
+
+        var freight = $("#freight" + id).text()
+        $('.modal-body').html("")
+        $('.modal-body').html('<input type="number" id="' + id + '" class="updateFreight" value="' + freight + '"> </input>');
+
+    }
+
+    function updateRow() {
+
+        var value = parseFloat($('.updateFreight').val());
+        var id = $('.updateFreight').attr('id')
+
+        if (value > 0 && $('.updateFreight').val() !== null) {
+            $.ajax({
+                url: "/Home/Update",
+                type: "POST",
+                data: { 'id': id, 'freight': value },
+                success: function (r) {
+                    if (r) {
+                        $('#modalEdit').modal('hide');
+                        $("#freight" + id).text(value)
+                        resTotal(); s
+
+                    }
+                }
+            });
+        } else {
+            window.alert("Solo se aceptan numeros positivos")
+        }
+
+    }
+
+    
+
+    function showAddModal(cliente) {
+        $('#modalCreate').modal('show');
+        $('#inputID').html("")
+        $('#inputID').html('<input type="hidden" id="valueID"  value="' + cliente.id + '"> </input>');
+
+    }
+
+
+    function addRow() {
+
+        var freight = parseFloat($('#freight').val());
+        var requiredDate = $('#requiredDate').val();
+        var orderDate = $('#orderDate').val();
+        var shipCity = $('#shipCity').val();
+        var id = $('#valueID').val();
+
+        $.ajax({
+            url: "/Home/Create",
+            type: "POST",
+            data: { 'freight': freight, 'requiredDate': requiredDate, 'orderDate': orderDate, 'shipCity': shipCity , 'id': id},
+            success: function (r) {
+                if (r) {
+                    var cliente = {
+                        'id': id
+                    }
+                    showOrders(cliente)
+                    $('#modalCreate').modal('hide');
+                }
+            }
+        });
+
+    }
+
+    function resTotal() {
+        var sum = 0;
+        $(".freight").each(function () {
+            sum += parseFloat($(this).text());
+        })
+        $("#sumaTotal").text(sum)
+    }
+</script>
+
+
+
+
